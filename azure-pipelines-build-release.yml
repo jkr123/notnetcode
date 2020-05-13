@@ -1,0 +1,77 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- dev
+
+variables:
+  BuildPlatform: 'any cpu'
+  BuildConfiguration: 'release'
+  Solution: '**/*.sln'
+
+stages:
+  - stage: Build
+    displayName: Build image
+    jobs:
+      - job: Build
+        displayName: Build job
+        pool:
+         vmImage: 'windows-latest'
+        steps:
+         - task: NuGetToolInstaller@1
+           inputs:
+            versionSpec: 
+            checkLatest: true
+         - task: NuGetCommand@2
+           inputs:
+                command: 'restore'
+                restoreSolution: '**/*.sln'
+                feedsToUse: 'select'
+         - task: VSBuild@1
+           inputs:
+            solution: '**\*.sln'
+            msbuildArgs: '/p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:publishUrl="$(Agent.TempDirectory)\WebAppContent\\"'
+         - task: ArchiveFiles@2
+           inputs:
+             rootFolderOrFile: '$(Agent.TempDirectory)\WebAppContent'
+             includeRootFolder: false
+             archiveType: 'zip'
+             archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+             replaceExistingArchive: true
+
+         - task: PublishBuildArtifacts@1
+           inputs:
+                    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+                    ArtifactName: 'drop'
+                    publishLocation: 'Container'
+
+  - stage: Deploy
+    displayName: Deploy to web
+    dependsOn: Build
+    jobs:
+      - deployment: Deploy
+        pool:
+         vmImage: 'windows-latest'          
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+             steps:
+               - task: DownloadBuildArtifacts@0
+                 inputs:
+                  buildType: 'current'
+                  downloadType: 'single'
+                  artifactName: 'drop'
+                  downloadPath: '$(System.ArtifactsDirectory)'
+               - task: AzureRmWebAppDeployment@4
+                 inputs:
+                   ConnectionType: 'AzureRM'
+                   azureSubscription: 'azuredevopsconnection'
+                   appType: 'webApp'
+                   WebAppName: 'praveendemo'
+                   deployToSlotOrASE: true
+                   ResourceGroupName: 'class'
+                   SlotName: 'Stage'
+                   packageForLinux: '$(System.ArtifactsDirectory)/**/*.zip'

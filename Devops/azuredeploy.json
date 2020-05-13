@@ -1,0 +1,104 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "ranjithName": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "precisein"
+    },
+    "strname": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Webappname": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "preciseindev"
+    },
+    "ranjithSkuName": {
+      "type": "string",
+      "defaultValue": "F1",
+      "allowedValues": [
+        "F1",
+        "D1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "metadata": {
+        "description": "Describes plan's pricing tier and capacity. Check details at https://azure.microsoft.com/en-us/pricing/details/app-service/"
+      }
+    },
+    "prasadreType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    }
+  },
+  "variables": {  },
+    "resources": [
+    {
+      "name": "[parameters('ranjithName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01",
+      "sku": {
+        "name": "[parameters('ranjithSkuName')]"
+      },
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "ranjith"
+      },
+      "properties": {
+        "name": "[parameters('ranjithName')]",
+        "numberOfWorkers": 1
+      }
+    },
+    {
+      "name": "[parameters('Webappname')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('ranjithName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('strname'))]"
+      ],
+      "tags": {
+        "[concat('hidden-related:', resourceId('Microsoft.Web/serverfarms', parameters('ranjithName')))]": "Resource",
+        "displayName": "[parameters('Webappname')]"
+      },
+      "properties": {
+        "name": "[parameters('Webappname')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('ranjithName'))]"
+      }
+    },
+    {
+      "name": "[parameters('strname')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-01-01",
+      "sku": {
+        "name": "[parameters('prasadreType')]"
+      },
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "prasadre"
+      },
+      "kind": "Storage"
+    }],
+  "outputs": {}
+}
